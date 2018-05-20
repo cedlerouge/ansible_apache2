@@ -38,5 +38,25 @@ script:
     docker exec --tty "$(cat ${container_id})" env TERM=xterm
     ansible-playbook /etc/ansible/roles/ansible_apache2/tests/test.yml --syntax-check
 
+  # Run the role/playbook with ansible-playbook.
+  - >
+    docker exec --tty "$(cat ${container_id})" env TERM=xterm
+    ansible-playbook /etc/ansible/roles/ansible_apache2/tests/test.yml
+
+  # Run the role/playbook again, checking to make sure it's idempotent.
+  - idempotence=$(mktemp)
+  - >
+    docker exec "$(cat ${container_id})"
+    ansible-playbook /etc/ansible/roles/ansible_apache2/tests/test.yml 
+    | tee -a ${idempotence}
+  - >
+    tail ${idempotence} 
+    | grep -q 'changed=0.*failed=0'
+    && (echo 'Idempotence test: pass' && exit 0)
+    || (echo 'Idempotence test: fail' && exit 1)
+
+  # Ensure apache2 is installed.
+  - 'docker exec --tty "$(cat ${container_id})" env TERM=xterm which apache2ctl'
+
 notifications:
   # Notify Ansible Galaxy
