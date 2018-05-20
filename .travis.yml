@@ -1,0 +1,41 @@
+# sudo needed for some of Docker commands
+sudo: required
+
+env:
+    - distro: ubuntu1804
+      init: /lib/systemd/systemd
+      run_opts: "--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro"
+    - distro: ubuntu1604
+      init: /lib/systemd/systemd
+      run_opts: "--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro"
+    - distro: ubuntu1404
+      init: /sbin/init
+      run_opts: ""
+    - distro: debian9
+      init: /lib/systemd/systemd
+      run_opts: "--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro"
+    - distro: debian8
+      init: /lib/systemd/systemd
+      run_opts: "--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro"
+  
+# Travis must start Docker
+services:
+  - docker
+
+before_install:
+  # Pull the image
+  - 'docker pull geerlingguy/docker-${distro}-ansible:latest'
+
+script:
+  # Create a random file to store the container ID.
+  - container_id=$(mktemp)
+  # Run container detached, with our role mounted inside.
+  - 'docker run --detach --volume="${PWD}":/etc/ansible/roles/ansible_apache2:ro ${run_opts} geerlingguy/docker-${distro}-ansible:latest "${init}" > "${container_id}"':"'
+
+  # Check the role/playbook's syntax.
+  - >
+    docker exec --tty "$(cat ${container_id})" env TERM=xterm
+    ansible-playbook /etc/ansible/roles/ansible_apache2/tests/test.yml --syntax-check
+
+notifications:
+  # Notify Ansible Galaxy

@@ -1,0 +1,6 @@
+---
+- hosts: all 
+  
+  roles:
+    - ansible_apache2
+    
