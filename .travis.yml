@@ -1,22 +1,23 @@
+---
 # sudo needed for some of Docker commands
 sudo: required
 
 env:
-    - distro: ubuntu1804
-      init: /lib/systemd/systemd
-      run_opts: "--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro"
-    - distro: ubuntu1604
-      init: /lib/systemd/systemd
-      run_opts: "--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro"
-    - distro: ubuntu1404
-      init: /sbin/init
-      run_opts: ""
-    - distro: debian9
-      init: /lib/systemd/systemd
-      run_opts: "--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro"
-    - distro: debian8
-      init: /lib/systemd/systemd
-      run_opts: "--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro"
+  #- distro: "ubuntu1804"
+  #  init: "/lib/systemd/systemd"
+  #  run_opts: "--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro"
+  - distro: ubuntu1604
+    init: /lib/systemd/systemd
+    run_opts: "--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro"
+  - distro: ubuntu1404
+    init: /sbin/init
+    run_opts: ""
+  #- distro: debian9
+  #  init: /lib/systemd/systemd
+  #  run_opts: "--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro"
+  - distro: debian8
+    init: /lib/systemd/systemd
+    run_opts: "--privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro"
   
 # Travis must start Docker
 services:
