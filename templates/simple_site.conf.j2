@@ -1,0 +1,18 @@
+<VirtualHost *:80>
+    ServerName      {{ ansible_fqdn }}
+    ServerAdmin     sysadmin@{{ ansible_fqdn }}
+
+    CustomLog       /var/log/apache2/{{ ansible_fqdn }}_access.log combined
+    ErrorLog        /var/log/apache2/{{ ansible_fqdn }}_error.log
+    LogLevel        warn
+
+    DocumentRoot    {{ docroot }}/{{ ansible_fqdn }}/
+    <Directory "{{ docroot }}/{{ ansible_fqdn }}/">
+        Options         FollowSymLinks Indexes ExecCGI 
+        AllowOverride   All
+	Require all granted
+    </Directory>
+
+    ServerSignature Off
+</VirtualHost>
+

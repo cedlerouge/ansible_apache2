@@ -1,0 +1,103 @@
+---
+# https://github.com/PeterMosmans/ansible-role-apache2
+
+- name: Install apache
+  apt: name=apache2 state=latest update_cache=yes
+
+- name: harden apache2 security configuration
+  lineinfile: dest=/etc/apache2/conf-available/security.conf regexp="^{{ item.name }}" line="{{ item.name }} {{ item.value }}" state=present
+  with_items:
+    - name: "ServerTokens"
+      value: "Prod"
+    - name: "ServerSignature"
+      value: "Off"
+    - name: "TraceEnable"
+      value: "Off"
+
+- name: Enable apache2 security configuration
+  command: a2enconf security.conf creates=/etc/apache2/conf-enabled/security.conf
+  notify: reload apache2
+
+- name: Harden apache2 ssl configuration
+  lineinfile: dest=/etc/apache2/mods-available/ssl.conf regexp="{{ item.name }}" line="{{ item.name }} {{ item.value }}" state=present
+  with_items:
+    - name: "SSLProtocol"
+      value: "all -SSLv2 -SSLv3"
+    - name: "SSLHonorCipherOrder"
+      value: "on"
+    - name: "SSLSessionCacheTimeout"
+      value: "3600"
+    - name: "SSLCipherSuite"
+      value: "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5:!DSS"
+
+- name: Enable apache2 ssl configuration 
+  apache2_module: name=ssl state=present
+  notify: restart apache2
+  when: has_ssl is defined and has_ssl
+  tags: 
+    - ssl
+
+- name: Disable apache2 modules
+  apache2_module: name={{ item }} state=absent
+  with_items: "{{ apache2_modules_disabled|default([]) }}"
+  notify: reload apache2
+  ignore_errors: true
+
+- name: Enable apache2 modules
+  apache2_module: name={{ item }} state=present
+  with_items: "{{ apache2_modules_enabled|default([]) }}"
+  notify: reload apache2
+  tags:
+    - deploy_sites
+
+- name: Remove content default site
+  file: path=/var/www/html state=absent
+
+- name: Disable default site
+  command: a2dissite {{ apache2_default_site }} removes=/etc/apache2/sites-enabled/{{ apache2_default_site }}.conf
+
+- name: Deploy apache2 vhost files
+  copy: src={{ item.src }}/{{ item.name }} dest=/etc/apache2/sites-available/{{ item.name }}.conf owner=root group=root mode=640
+  with_items: "{{ vhost|default([]) }}"
+  tags: 
+    - deploy_sites
+
+- name: Enable websites
+  command: a2ensite {{ item.name }} creates=/etc/apache2/sites-enabled/{{ item.name }}
+  with_items: "{{ vhost|default([]) }}"
+  notify: reload apache2
+  tags: 
+    - deploy_sites
+
+- name: Deploy apache2 simple site configuration
+  template: src=simple_site.conf.j2 dest=/etc/apache2/sites-available/{{ ansible_fqdn }}.conf owner=root group=root mode=640
+  when: simple_site
+
+- name: Create repository for simple site 
+  file: path=/{{ docroot }}/{{ ansible_fqdn }} state=directory mode=0755
+
+- name: Enable simple site 
+  command: a2ensite {{ ansible_fqdn }} creates=/etc/apache2/sites-enabled/{{ ansible_fqdn }}
+  when: simple_site
+
+- name: Deploy SSL chain certs
+  copy: src={{ websrv_ssl_folder }}/{{ item }}.chain.crt dest=/etc/ssl/certs/{{ item }}.chain.crt owner=root group=root mode=644 force=yes
+  with_items: "{{ ssl_certs|default([]) }}"
+  tags:
+    - ssl
+
+- name: Deploy SSL certs
+  copy: src={{ websrv_ssl_folder }}/{{ item }}.crt dest=/etc/ssl/certs/{{ item }}.crt owner=root group=root mode=644 force=yes
+  with_items: "{{ ssl_certs|default([]) }}"
+  tags: 
+    - ssl
+
+- name: Deploy SSL keys
+  copy: src={{ websrv_ssl_folder }}/{{ item }}.key dest=/etc/ssl/private/{{ item }}.key owner=root group=root mode=600 force=yes
+  with_items: "{{ ssl_keys|default([]) }}"
+  tags: 
+    - ssl
+  notify: reload apache2
+
+- name: Enable apache2 to start
+  service: name=apache2 state=started enabled=true

@@ -1,0 +1,27 @@
+---
+# default file for webserver role
+
+simple_site: True
+has_ssl: False
+ssl_folder: ../files
+docroot: /var/www
+apache2_default_site: "000-default"
+apache2_modules_disabled:
+  - authn_anon
+  - userdir
+  - cgi
+  - dav
+apache2_modules_enabled:
+  - expires
+  - alias
+  - auth_digest
+  - authz_host
+  - deflate
+  - dir
+  - headers
+  - reqtimeout
+  - rewrite
+  - status
+
+websrv_hostname: "{{ ansible_fqdn }}"
+
