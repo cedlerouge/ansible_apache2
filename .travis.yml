@@ -1,5 +1,4 @@
 ---
-# sudo needed for some of Docker commands
 sudo: required
 
 env:
@@ -31,7 +30,7 @@ script:
   # Create a random file to store the container ID.
   - container_id=$(mktemp)
   # Run container detached, with our role mounted inside.
-  - 'docker run --detach --volume="${PWD}":/etc/ansible/roles/ansible_apache2:ro ${run_opts} geerlingguy/docker-${distro}-ansible:latest "${init}" > "${container_id}"':"'
+  - 'docker run --detach --volume="${PWD}":/etc/ansible/roles/ansible_apache2:ro ${run_opts} geerlingguy/docker-${distro}-ansible:latest "${init}" > "${container_id}"'
 
   # Check the role/playbook's syntax.
   - >
